@@ -450,13 +450,13 @@ class WDRBO_Acquistion(AnalyticAcquisitionFunction):
             self, 
             ensemble,
             kde_samples,
-            # contexts_samples_for_L,
+            beta,
             posterior_transform=None,
             **kwargs,
     ) -> None:
         super().__init__(model=ensemble, posterior_transform=posterior_transform, **kwargs)
         self.register_buffer("kde_samples", kde_samples)
-        # self.register_buffer("sample_contexts_for_L", contexts_samples_for_L)
+        self.register_buffer("beta", torch.as_tensor(beta))
         self.N_samples = self.kde_samples.shape[0]
 
     def forward(self, X: torch.Tensor):
@@ -477,29 +477,6 @@ class WDRBO_Acquistion(AnalyticAcquisitionFunction):
         # sample_contexts_for_L = self.sample_contexts_for_L.to(device)
         kde_samples = self.kde_samples.to(device)
         
-#         sample_contexts_for_L_dim = sample_contexts_for_L.shape[0] # This is the number of contexts samples for L.
-#         with torch.enable_grad():
-#             #create X_ContextsL as the concatenation of X and the contexts for all the combinations of X and the contexts.
-#             X_tmpL = X.unsqueeze(1).expand(-1, sample_contexts_for_L_dim, -1).requires_grad_(True)
-#             ContextsL = sample_contexts_for_L.unsqueeze(0).expand(batch_size, -1, -1)
-#             X_ContextsL = torch.cat((X_tmpL, ContextsL), dim=-1)
-#             L_stds = []
-#             for model in self.model.models:
-#                 posteriorL = model.posterior(X_ContextsL)
-#                 L_stds.append(posteriorL.variance.sqrt()) # This is 'batch x N_samples x 1'
-#             L_stds = torch.cat(L_stds, dim=0)
-#             n = torch.numel(torch.tensor(L_stds))
-#             L_stds = L_stds.reshape(3, n//300, 100)
-#             print(L_stds.shape)
-#             ucbL = L_stds.max(dim=0)[0] # This is 'batch x N_samples x 1'
-#             print(ucbL.shape)
-#             ucbL = ucbL.squeeze() # This is 'batch x N_samples'
-
-#         grad = torch.autograd.grad(ucbL, X_ContextsL, torch.ones_like(ucbL), retain_graph=True)[0] # This is 'batch x N_samples x (dim+contexts_dim)'
-#         grad_contexts = grad[:, :, dim:] # Takes the components of the gradient w.r.t. the contexts.
-#         grad_contexts_norm = torch.norm(grad_contexts, dim=-1) # This is 'batch x N_samples', this is a L2 norm of the gradient w.r.t. the contexts.
-#         L = grad_contexts_norm.max(dim=1)[0] # This is 'batch', for each x in X, this is the maximum sensitivity of the UCB w.r.t. the contexts.
-        
         X_tmp = torch.tile(X, (1, self.N_samples))
         X_tmp = torch.reshape(X_tmp, (batch_size, self.N_samples, dim))
         reshaped_kde_samples = kde_samples.reshape(1, self.N_samples, contexts_dim)
@@ -513,11 +490,11 @@ class WDRBO_Acquistion(AnalyticAcquisitionFunction):
             single_means.append(torch.mean(posterior.mean.reshape(batch_size, self.N_samples), dim=1).unsqueeze(0))
             single_stds.append(torch.mean(torch.sqrt(posterior.variance.reshape(batch_size, self.N_samples)), dim=1).unsqueeze(0))
         
-        single_means = torch.cat(single_means, dim=0).reshape(3, batch_size)
-        single_stds = torch.cat(single_stds, dim=0).reshape(3, batch_size)
+        single_means = torch.cat(single_means, dim=0).reshape(len(self.model.models), batch_size)
+        single_stds = torch.cat(single_stds, dim=0).reshape(len(self.model.models), batch_size)
         
         mean = single_means.mean(dim=0)
         std = single_stds.mean(dim=0)
-        epsilon_t = 2.0 * torch.max(torch.sqrt((single_means - mean)**2 + (single_stds - std)**2))
+        epsilon_t = torch.max(torch.sqrt((single_means - mean)**2 + (single_stds - std)**2))
         
-        return mean - epsilon_t
+        return mean + self.beta * std - torch.as_tensor(1.41) * epsilon_t

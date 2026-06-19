@@ -128,7 +128,7 @@ class WDRBOOptimizer(BOTorchOptimizer):
             acqf = WDRBO_Acquistion(
                 ensemble=ensemble,
                 kde_samples=self.contexts,
-                # contexts_samples_for_L=self.contexts_for_L,
+                beta=self.beta
             )
             candidates, _ = optimize_acqf(
                 acq_function=acqf,
@@ -154,7 +154,7 @@ class WDRBO3_Optimizer(WDRBOOptimizer):
             input_transform=Normalize(d=train_X.shape[-1]),
             outcome_transform=Standardize(m=train_Y.shape[-1]),
             mean_module=ZeroMean(),
-            covar_module=RBFKernel(),#ard_num_dims=train_X.size(-1)),
+            covar_module=RBFKernel(),#, ard_num_dims=train_X.size(-1)),
         ).to(device=self.device)
         model2 = SingleTaskGP(
             train_X=train_X,
@@ -173,6 +173,46 @@ class WDRBO3_Optimizer(WDRBOOptimizer):
             covar_module=MaternKernel(),#ard_num_dims=train_X.size(-1)),
         ).to(device=self.device)
         return [model1, model2, model3]
+
+
+class LEDRBO_Optimizer(WDRBOOptimizer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get_list_of_models(self, train_X, train_Y):
+        model1 = SingleTaskGP(
+            train_X=train_X,
+            train_Y=train_Y,
+            input_transform=Normalize(d=train_X.shape[-1]),
+            outcome_transform=Standardize(m=train_Y.shape[-1]),
+            mean_module=ZeroMean(),
+            covar_module=RBFKernel(ard_num_dims=train_X.size(-1))
+        ).to(device=self.device)
+        model2 = SingleTaskGP(
+            train_X=train_X,
+            train_Y=train_Y,
+            input_transform=Normalize(d=train_X.shape[-1]),
+            outcome_transform=Standardize(m=train_Y.shape[-1]),
+            mean_module=ZeroMean(),
+            covar_module=RQKernel(ard_num_dims=train_X.size(-1))
+        ).to(device=self.device)
+        model3 = SingleTaskGP(
+            train_X=train_X,
+            train_Y=train_Y,
+            input_transform=Normalize(d=train_X.shape[-1]),
+            outcome_transform=Standardize(m=train_Y.shape[-1]),
+            mean_module=ZeroMean(),
+            covar_module=MaternKernel(nu=1.5, ard_num_dims=train_X.size(-1))
+        ).to(device=self.device)
+        model4 = SingleTaskGP(
+            train_X=train_X,
+            train_Y=train_Y,
+            input_transform=Normalize(d=train_X.shape[-1]),
+            outcome_transform=Standardize(m=train_Y.shape[-1]),
+            mean_module=ZeroMean(),
+            covar_module=MaternKernel(nu=2.5, ard_num_dims=train_X.size(-1)),#
+        ).to(device=self.device)
+        return [model1, model2, model3, model4]
 
 
 class UCB_Optimizer(BOTorchOptimizer):

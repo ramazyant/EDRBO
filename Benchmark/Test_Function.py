@@ -638,3 +638,72 @@ class ThreeHumpCamel(SyntheticTestFunction):
         f_X = 2 * x1**2 - 1.05 * x1**4 + x1**6 / 6 + x1 * x2 + x2**2
         f_X = f_X*(-1)
         return f_X.mean()
+
+
+class Ackley_dimensional(SyntheticTestFunction):
+
+    # The last dimension follows a Gaussian Distribution.
+    _check_grad_at_opt = False
+
+    def __init__(
+        self,
+        mu=0.5,
+        sigma=0.2,
+        dim=3,
+        noise_std=None,
+        negate=False,
+        bounds=None,
+        contexts_dim=1
+    ):
+        self.dim = dim + (contexts_dim - 1)
+        self.contexts_dim = contexts_dim
+        #self._bounds = [(-32.768, 32.768) for _ in range(self.dim)]
+        self._bounds = [(0.0, 1.0) for _ in range(self.dim)]
+        super().__init__(noise_std=noise_std, negate=False, bounds=bounds)
+        self.a = 20
+        self.b = 0.2
+        self.c = 2 * math.pi
+        self.negate_ = negate
+        self.mu = mu
+        self.sigma = sigma
+        self.max_stochastic = 12.78
+        if negate:
+            self.max_stochastic = -12.78
+        self.can_calculate_stochastic = True
+
+    def evaluate_true(self, X):
+        batch_size = X.shape[0]
+        context = torch.normal(mean=self.mu, std=self.sigma, size=(batch_size, self.contexts_dim))
+        context_clamp = torch.clamp(context, self.bounds[0,-1], self.bounds[1,-1])
+        X = torch.cat((X, context_clamp), dim=1)
+        X = X*65.536 - 32.768
+        a, b, c = self.a, self.b, self.c
+        part1 = -a * torch.exp(-b / math.sqrt(self.dim) * torch.norm(X, dim=-1))
+        part2 = -(torch.exp(torch.mean(torch.cos(c * X), dim=-1)))
+        f_X = part1 + part2 + a + math.e
+        if self.negate_:
+            f_X *= -1
+        return f_X, context_clamp
+
+    def evaluate_stochastic(self, X, sample_size=655360):
+        '''
+        :param X: 1 x d Tensor.
+        :param sample_size: QMC Sample Size for calculating stochastic value.
+        :return:
+        '''
+        X = X.reshape(1, -1)
+        engine = SobolEngine(1)
+        sobol_samples = engine.draw(sample_size)
+        std_samples = torch.erfinv(2 * sobol_samples - 1) * math.sqrt(2)
+        context = self.mu + self.sigma * std_samples
+        context_clamp = torch.clamp(context, self.bounds[0,-1], self.bounds[1,-1]) # the values that are out of bounds are clamped to the bounds
+        X = torch.tile(X, (sample_size, 1))
+        X = torch.cat((X, context_clamp), dim=1)
+        X = X*65.536 - 32.768 # scale the values to the range of the function
+        a, b, c = self.a, self.b, self.c
+        part1 = -a * torch.exp(-b / math.sqrt(self.dim) * torch.norm(X, dim=-1))
+        part2 = -(torch.exp(torch.mean(torch.cos(c * X), dim=-1)))
+        f_X = part1 + part2 + a + math.e
+        if self.negate_:
+            f_X *= -1
+        return f_X.mean()

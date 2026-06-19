@@ -7,8 +7,10 @@ from edrbo.optimizers import WassersteinUCB_Optimizer
 from edrbo.optimizers import EmpiricalUCB_Optimizer
 from edrbo.optimizers import DRBOKDE_Optimizer
 from edrbo.optimizers import WDRBO3_Optimizer
+from edrbo.optimizers import LEDRBO_Optimizer
 
 from Benchmark.Test_Function import Ackley
+from Benchmark.Test_Function import Ackley_dimensional
 from Benchmark.Test_Function import Hartmann
 from Benchmark.Test_Function import Modified_Branin
 from Benchmark.Test_Function import portfolio_optimization
@@ -45,6 +47,7 @@ OPTIMIZERS = [
     "EmpiricalUCB",
     "DRBOKDE",
     "WDRBO3",
+    "LEDRBO"
 ]
 
 PROBLEMS = [
@@ -89,12 +92,12 @@ parser.add_argument(
 parser.add_argument(
     "--running_rounds",
     type=int,
-    default=200,
+    default=7,
 )
 parser.add_argument(
     "--repeat",
     type=int,
-    default=10,
+    default=2,
     help="Number of experiment repeats"
 )
 parser.add_argument(
@@ -119,6 +122,11 @@ parser.add_argument(
     type=bool,
     default=False
 )
+# parser.add_argument(
+#     "--contexts_dim",
+#     type=int,
+#     default=1
+# )
 
 args = parser.parse_args()
 
@@ -132,13 +140,13 @@ device = torch.device(args.device)
 # Create the Result directory if it doesn't exist
 os.makedirs('./Result', exist_ok=True)
 
-test_func = eval(args.benchmark)(negate=not args.minimization).to(dtype=torch.float64)#
+test_func = eval(args.benchmark)(negate=not args.minimization).to(dtype=torch.float64)# , contexts_dim=args.contexts_dim
 
 for i in range(args.repeat):
     
     start = time.time()
     seed = args.start_seed + i
-    base_dir = f'{args.optimizer}_{args.benchmark}_{seed}_{args.running_rounds}_{test_func.dim}_{test_func.mu}_{test_func.sigma}_{args.beta}_results'
+    base_dir = f'{args.optimizer}_{args.benchmark}_{seed}_{args.running_rounds}_{test_func.dim}_{test_func.mu}_{test_func.sigma}_{args.beta}_results'# dim_{args.contexts_dim}_
     # check if the same experiment has been already done 
     if os.path.exists(f'./Result/{base_dir}.pkl'):
         print(f"Experiment {base_dir} has been already done.")

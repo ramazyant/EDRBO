@@ -3,7 +3,7 @@ import subprocess
 import argparse
 
 # Define the list of optimizers and test problems
-optimizers = ['WDRBO3', 'EmpiricalUCB', 'UCB', 'WassersteinUCB', 'SBOKDE', 'DRBOKDE', 'MMD', 'MMD_Minimax_Approx', 'Stable']
+optimizers = ['LEDRBO', 'EmpiricalUCB', 'UCB', 'WassersteinUCB', 'SBOKDE', 'DRBOKDE', 'MMD', 'MMD_Minimax_Approx', 'Stable']
 test_problems = ['Ackley', 'ThreeHumpCamel', 'Hartmann', 'Hartmann_complicated', 'Modified_Branin', 'Continuous_Vendor', 'SixHumpCamel', 'portfolio_optimization', 'portfolio_normal_optimization']
 
 # # Define other parameters
