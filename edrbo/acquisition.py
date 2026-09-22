@@ -484,17 +484,24 @@ class WDRBO_Acquistion(AnalyticAcquisitionFunction):
         X_Contexts = torch.cat((X_tmp, Contexts), dim=-1)
         X_Contexts = X_Contexts.reshape(-1, dim + contexts_dim)
         
-        single_means, single_stds = [], []
+        per_expert_means, per_expert_stds = [], []
         for model in self.model.models:
             posterior = model.posterior(X_Contexts)
-            single_means.append(torch.mean(posterior.mean.reshape(batch_size, self.N_samples), dim=1).unsqueeze(0))
-            single_stds.append(torch.mean(torch.sqrt(posterior.variance.reshape(batch_size, self.N_samples)), dim=1).unsqueeze(0))
-        
-        single_means = torch.cat(single_means, dim=0).reshape(len(self.model.models), batch_size)
-        single_stds = torch.cat(single_stds, dim=0).reshape(len(self.model.models), batch_size)
-        
-        mean = single_means.mean(dim=0)
-        std = single_stds.mean(dim=0)
-        epsilon_t = torch.max(torch.sqrt((single_means - mean)**2 + (single_stds - std)**2))
+            per_expert_means.append(posterior.mean.reshape(batch_size, self.N_samples).unsqueeze(0))
+            per_expert_stds.append(torch.sqrt(posterior.variance).reshape(batch_size, self.N_samples).unsqueeze(0))
+
+        per_expert_means = torch.cat(per_expert_means, dim=0)   # [M, batch, N_samples]
+        per_expert_stds = torch.cat(per_expert_stds, dim=0)     # [M, batch, N_samples]
+
+        mu_bar = per_expert_means.mean(dim=0)                   # barycentre mean, pointwise per (x, c)
+        sigma_bar = per_expert_stds.mean(dim=0)                 # barycentre std, pointwise per (x, c)
+
+        epsilon_pointwise = torch.max(
+            torch.sqrt((per_expert_means - mu_bar) ** 2 + (per_expert_stds - sigma_bar) ** 2), dim=0
+        ).values  # [batch, N_samples]
+
+        mean = mu_bar.mean(dim=1) 
+        std  = sigma_bar.mean(dim=1)
+        epsilon_t = epsilon_pointwise.mean(dim=1)
         
         return mean + self.beta * std - torch.as_tensor(1.41) * epsilon_t
