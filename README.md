@@ -1,4 +1,4 @@
-Official repository of [Ensemble Distributionally Robust Bayesian Optimization with Continuous Context](https://arxiv.org/abs/2605.07565).
+Official repository of Ensemble Distributionally Robust Bayesian Optimization with Continuous Context.
 
 This code is based on repositories by [Micheli F. et al.](https://github.com/frmicheli/WDRBO/tree/main) and [X. Huang et al.](https://github.com/lamda-bbo/sbokde.)
 
