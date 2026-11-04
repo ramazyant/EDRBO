@@ -6,14 +6,13 @@ from .utils import generate_initial_data, sample_kde, update_edf, get_kernel_mat
 from botorch.models.gp_regression import SingleTaskGP
 import math
 from botorch.optim.optimize import optimize_acqf
-from .acquisition import KDE_UCB, Stable_UCB, MMD_UCB, MMD_Minimax_Approx_UCB, KDE_DRBO_UCB, Wasserstein_UCB
+from .acquisition import KDE_UCB, Stable_UCB, MMD_UCB, MMD_Minimax_Approx_UCB, KDE_DRBO_UCB, Wasserstein_UCB, EDRBO_Acquistion
 from botorch.fit import fit_gpytorch_mll
 from gpytorch.mlls.sum_marginal_log_likelihood import ExactMarginalLogLikelihood
 from botorch.acquisition.analytic import UpperConfidenceBound, ExpectedImprovement
 from botorch.generation.gen import gen_candidates_scipy, TGenCandidates, gen_candidates_torch
 from botorch.models.transforms import Standardize, Normalize
 from .ensemble import GPEnsemble
-from .acquisition import EDRBO_Acquistion_lip_plus, RBF_EDRBO_Acquistion_lip_plus, Ensemble_Wasserstein_UCB
 
 from gpytorch.means import ZeroMean
 from gpytorch.kernels import MaternKernel, ScaleKernel, RQKernel, RBFKernel
@@ -22,7 +21,7 @@ from abc import abstractmethod
 
 
 class BOTorchOptimizer:
-    def __init__(self, problem, init_size=10, running_rounds=200, device=torch.device('cpu'), beta=1.5, af=None):
+    def __init__(self, problem, init_size=10, running_rounds=200, device=torch.device('cpu'), beta=1.5):
         self.problem = problem
         self.init_size = init_size
         self.running_rounds = running_rounds
@@ -37,7 +36,6 @@ class BOTorchOptimizer:
         self.cumulative_stochastic_reward = None
         self.device = device
         self.bounds = self.problem.bounds.to(self.device)
-        self.af = af
 
     def get_model(self, context=False):
         X_contexts = self.train_X
@@ -120,17 +118,7 @@ class WDRBOOptimizer(BOTorchOptimizer):
         for i in tqdm(range(self.init_size, self.running_rounds)):
             ensemble = self.get_ensemble()
             
-            if self.af == 'rbf':
-                acqf = RBF_EDRBO_Acquistion_lip_plus(ensemble=ensemble, kde_samples=self.contexts, beta=self.beta)
-            elif self.af == 'eps':
-                acqf = Ensemble_Wasserstein_UCB(
-                    model=ensemble,
-                    beta=self.beta,
-                    kde_samples=self.contexts,
-                    contexts_samples_for_L=self.contexts_for_L,
-                    radius = 0.3/math.sqrt(i))
-            elif self.af == 'lip_plus':
-                acqf = EDRBO_Acquistion_lip_plus(ensemble=ensemble, kde_samples=self.contexts, beta=self.beta)
+            acqf = EDRBO_Acquistion(ensemble=ensemble, kde_samples=self.contexts, beta=self.beta)
             
             candidates, _ = optimize_acqf(
                 acq_function=acqf,
@@ -146,8 +134,8 @@ class WDRBOOptimizer(BOTorchOptimizer):
 
 
 class LEDRBO_Optimizer(WDRBOOptimizer):
-    def __init__(self, problem, init_size=10, running_rounds=150, device=torch.device('cpu'), beta=1.5, af="non"):
-        super().__init__(problem, init_size, running_rounds, device=device, beta=beta, af=af)
+    def __init__(self, problem, init_size=10, running_rounds=150, device=torch.device('cpu'), beta=1.5):
+        super().__init__(problem, init_size, running_rounds, device=device, beta=beta)
 
     def get_list_of_models(self, train_X, train_Y):
         model1 = SingleTaskGP(
