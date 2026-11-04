@@ -13,7 +13,7 @@ from botorch.acquisition.analytic import UpperConfidenceBound, ExpectedImproveme
 from botorch.generation.gen import gen_candidates_scipy, TGenCandidates, gen_candidates_torch
 from botorch.models.transforms import Standardize, Normalize
 from .ensemble import GPEnsemble
-from .acquisition import WDRBO_Acquistion
+from .acquisition import EDRBO_Acquistion_lip_plus, RBF_EDRBO_Acquistion_lip_plus, Ensemble_Wasserstein_UCB
 
 from gpytorch.means import ZeroMean
 from gpytorch.kernels import MaternKernel, ScaleKernel, RQKernel, RBFKernel
@@ -22,7 +22,7 @@ from abc import abstractmethod
 
 
 class BOTorchOptimizer:
-    def __init__(self, problem, init_size=10, running_rounds=200, device=torch.device('cpu'), beta=1.5):
+    def __init__(self, problem, init_size=10, running_rounds=200, device=torch.device('cpu'), beta=1.5, af=None):
         self.problem = problem
         self.init_size = init_size
         self.running_rounds = running_rounds
@@ -37,6 +37,7 @@ class BOTorchOptimizer:
         self.cumulative_stochastic_reward = None
         self.device = device
         self.bounds = self.problem.bounds.to(self.device)
+        self.af = af
 
     def get_model(self, context=False):
         X_contexts = self.train_X
@@ -100,20 +101,13 @@ class BOTorchOptimizer:
 class WDRBOOptimizer(BOTorchOptimizer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        num_context_samples_for_L = 100
-        # sample contexts for L calculation, shape is (num_context_samples_for_L, contexts_dim)
-        # self.contexts_for_L = sample_context_for_L_calculation(num_context_samples_for_L, self.problem.bounds[:, (self.problem.dim-self.problem.contexts_dim):])
-
+        self.contexts_for_L = sample_context_for_L_calculation(100, self.problem.bounds[:, (self.problem.dim-self.problem.contexts_dim):])
     @abstractmethod
     def get_list_of_models(self, train_X, train_Y):
         pass
     
     def get_ensemble(self, context=True):
         X_contexts = torch.cat((self.train_X, self.contexts), dim=-1)
-        
-        # mean = self.train_Y.mean()
-        # sigma = self.train_Y.std()
-        # Y = (self.train_Y - mean) / sigma
 
         ensemble = GPEnsemble(
             *self.get_list_of_models(train_X=X_contexts, train_Y=self.train_Y.reshape(-1, 1)),
@@ -125,11 +119,19 @@ class WDRBOOptimizer(BOTorchOptimizer):
     def run_opt(self):
         for i in tqdm(range(self.init_size, self.running_rounds)):
             ensemble = self.get_ensemble()
-            acqf = WDRBO_Acquistion(
-                ensemble=ensemble,
-                kde_samples=self.contexts,
-                beta=self.beta
-            )
+            
+            if self.af == 'rbf':
+                acqf = RBF_EDRBO_Acquistion_lip_plus(ensemble=ensemble, kde_samples=self.contexts, beta=self.beta)
+            elif self.af == 'eps':
+                acqf = Ensemble_Wasserstein_UCB(
+                    model=ensemble,
+                    beta=self.beta,
+                    kde_samples=self.contexts,
+                    contexts_samples_for_L=self.contexts_for_L,
+                    radius = 0.3/math.sqrt(i))
+            elif self.af == 'lip_plus':
+                acqf = EDRBO_Acquistion_lip_plus(ensemble=ensemble, kde_samples=self.contexts, beta=self.beta)
+            
             candidates, _ = optimize_acqf(
                 acq_function=acqf,
                 bounds=self.bounds[:, :(self.problem.dim - self.problem.contexts_dim)],
@@ -143,50 +145,18 @@ class WDRBOOptimizer(BOTorchOptimizer):
         return self.train_X, self.train_Y, self.contexts, self.cumulative_stochastic_regret, self.cumulative_regret, self.best_Y, self.stochastic_Y
 
 
-class WDRBO3_Optimizer(WDRBOOptimizer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def get_list_of_models(self, train_X, train_Y):
-        model1 = SingleTaskGP(
-            train_X=train_X,
-            train_Y=train_Y,
-            input_transform=Normalize(d=train_X.shape[-1]),
-            outcome_transform=Standardize(m=train_Y.shape[-1]),
-            mean_module=ZeroMean(),
-            covar_module=RBFKernel(),#, ard_num_dims=train_X.size(-1)),
-        ).to(device=self.device)
-        model2 = SingleTaskGP(
-            train_X=train_X,
-            train_Y=train_Y,
-            input_transform=Normalize(d=train_X.shape[-1]),
-            outcome_transform=Standardize(m=train_Y.shape[-1]),
-            mean_module=ZeroMean(),
-            covar_module=RQKernel(),#ard_num_dims=train_X.size(-1)),
-        ).to(device=self.device)
-        model3 = SingleTaskGP(
-            train_X=train_X,
-            train_Y=train_Y,
-            input_transform=Normalize(d=train_X.shape[-1]),
-            outcome_transform=Standardize(m=train_Y.shape[-1]),
-            mean_module=ZeroMean(),
-            covar_module=MaternKernel(),#ard_num_dims=train_X.size(-1)),
-        ).to(device=self.device)
-        return [model1, model2, model3]
-
-
 class LEDRBO_Optimizer(WDRBOOptimizer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, problem, init_size=10, running_rounds=150, device=torch.device('cpu'), beta=1.5, af="non"):
+        super().__init__(problem, init_size, running_rounds, device=device, beta=beta, af=af)
 
     def get_list_of_models(self, train_X, train_Y):
         model1 = SingleTaskGP(
-            train_X=train_X,
-            train_Y=train_Y,
-            input_transform=Normalize(d=train_X.shape[-1]),
-            outcome_transform=Standardize(m=train_Y.shape[-1]),
-            mean_module=ZeroMean(),
-            covar_module=RBFKernel(ard_num_dims=train_X.size(-1))
+           train_X=train_X,
+           train_Y=train_Y,
+           input_transform=Normalize(d=train_X.shape[-1]),
+           outcome_transform=Standardize(m=train_Y.shape[-1]),
+           mean_module=ZeroMean(),
+           covar_module=RBFKernel(ard_num_dims=train_X.size(-1))
         ).to(device=self.device)
         model2 = SingleTaskGP(
             train_X=train_X,

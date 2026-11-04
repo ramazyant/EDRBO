@@ -443,9 +443,9 @@ class KDE_DRBO_UCB(AnalyticAcquisitionFunction):
         for x, min_ucb in zip(X, min_ucbs):
             res.append(self._calculate_cvx(x, min_ucb))
         return torch.stack(res).reshape(-1,)
-    
 
-class WDRBO_Acquistion(AnalyticAcquisitionFunction):
+
+class EDRBO_Acquistion_lip_plus(AnalyticAcquisitionFunction):
     def __init__(
             self, 
             ensemble,
@@ -483,7 +483,7 @@ class WDRBO_Acquistion(AnalyticAcquisitionFunction):
         Contexts = torch.tile(reshaped_kde_samples, (batch_size, 1, 1))
         X_Contexts = torch.cat((X_tmp, Contexts), dim=-1)
         X_Contexts = X_Contexts.reshape(-1, dim + contexts_dim)
-        
+    
         per_expert_means, per_expert_stds = [], []
         for model in self.model.models:
             posterior = model.posterior(X_Contexts)
@@ -500,8 +500,155 @@ class WDRBO_Acquistion(AnalyticAcquisitionFunction):
             torch.sqrt((per_expert_means - mu_bar) ** 2 + (per_expert_stds - sigma_bar) ** 2), dim=0
         ).values  # [batch, N_samples]
 
-        mean = mu_bar.mean(dim=1) 
+        mean = mu_bar.mean(dim=1)                  # E_c[mu_bar(x,c)]
         std  = sigma_bar.mean(dim=1)
-        epsilon_t = epsilon_pointwise.mean(dim=1)
+        epsilon_t = epsilon_pointwise.mean(dim=1)  # E_c[epsilon_hat_t(x,c)]
         
-        return mean + self.beta * std - torch.as_tensor(1.41) * epsilon_t
+        return mean + self.beta * std + epsilon_t / torch.as_tensor(1.41)
+
+    
+class RBF_EDRBO_Acquistion_lip_plus(AnalyticAcquisitionFunction):
+    def __init__(
+            self, 
+            ensemble,
+            kde_samples,
+            beta,
+            posterior_transform=None,
+            **kwargs,
+    ) -> None:
+        super().__init__(model=ensemble, posterior_transform=posterior_transform, **kwargs)
+        self.register_buffer("kde_samples", kde_samples)
+        self.register_buffer("beta", torch.as_tensor(beta))
+        self.N_samples = self.kde_samples.shape[0]
+
+    def forward(self, X: torch.Tensor):
+        """
+        Input: X -> [n_samples, 1, decision_dim]
+        Actions:
+            1) Generate context X_c -> [n_samples, decision_dim + context_dim]
+            2) Put X_c into Enseble model -> value of acquistion
+        Return: y -> [n_samples,]
+        """
+        X = X.squeeze(dim=1)
+        dim = X.shape[1]
+        batch_size = X.shape[0]
+        contexts_dim = self.kde_samples.shape[1]
+    
+        # Ensure all tensors are on the same device
+        device = X.device
+        # sample_contexts_for_L = self.sample_contexts_for_L.to(device)
+        kde_samples = self.kde_samples.to(device)
+        
+        X_tmp = torch.tile(X, (1, self.N_samples))
+        X_tmp = torch.reshape(X_tmp, (batch_size, self.N_samples, dim))
+        reshaped_kde_samples = kde_samples.reshape(1, self.N_samples, contexts_dim)
+        Contexts = torch.tile(reshaped_kde_samples, (batch_size, 1, 1))
+        X_Contexts = torch.cat((X_tmp, Contexts), dim=-1)
+        X_Contexts = X_Contexts.reshape(-1, dim + contexts_dim)
+    
+        per_expert_means, per_expert_stds = [], []
+        for model in self.model.models:
+            posterior = model.posterior(X_Contexts)
+            per_expert_means.append(posterior.mean.reshape(batch_size, self.N_samples).unsqueeze(0))
+            per_expert_stds.append(torch.sqrt(posterior.variance).reshape(batch_size, self.N_samples).unsqueeze(0))
+
+        per_expert_means = torch.cat(per_expert_means, dim=0)   # [M, batch, N_samples]
+        per_expert_stds = torch.cat(per_expert_stds, dim=0)     # [M, batch, N_samples]
+
+        mu_bar = per_expert_means.mean(dim=0)                   # barycentre mean, pointwise per (x, c)
+        sigma_bar = per_expert_stds.mean(dim=0)                 # barycentre std, pointwise per (x, c)
+
+        epsilon_pointwise = torch.max(
+            torch.sqrt((per_expert_means - mu_bar) ** 2 + (per_expert_stds - sigma_bar) ** 2), dim=0
+        ).values  # [batch, N_samples]
+
+        mean = per_expert_means[0, :, :].mean(dim=-1)                  # E_c[mu_bar(x,c)]
+        std  = per_expert_stds[0, :, :].mean(dim=-1)
+        epsilon_t = epsilon_pointwise.mean(dim=1)  # E_c[epsilon_hat_t(x,c)]
+        
+        return mean + self.beta * std + epsilon_t / torch.as_tensor(1.41)
+
+    
+class Ensemble_Wasserstein_UCB(AnalyticAcquisitionFunction):
+    def __init__(
+            self, 
+            model, 
+            beta, 
+            kde_samples,
+            contexts_samples_for_L,
+            radius,
+            posterior_transform=None,
+            maximize=True,
+            **kwargs,
+    ) -> None:
+        super().__init__(model=model, posterior_transform=posterior_transform, **kwargs)
+        self.register_buffer("beta", torch.as_tensor(beta))
+        self.register_buffer("kde_samples", kde_samples)
+        self.register_buffer("sample_contexts_for_L", contexts_samples_for_L)
+        self.register_buffer("radius", torch.as_tensor(radius))
+        self.maximize = maximize
+        self.N_samples = self.kde_samples.shape[0]
+
+    def forward(self, X):
+        X = X.squeeze(dim=1)
+        dim = X.shape[1]
+        batch_size = X.shape[0]
+        contexts_dim = self.kde_samples.shape[1]
+    
+        # Ensure all tensors are on the same device
+        device = X.device
+        sample_contexts_for_L = self.sample_contexts_for_L.to(device)
+        kde_samples = self.kde_samples.to(device)
+        beta = self.beta.to(device)
+        radius = self.radius.to(device)
+        if radius is None:
+            L = torch.zeros(batch_size, device=device)
+        else:
+            # Compute Lipschitz constant L these are static samples. I want to compute the sensitivity of the UCB w.r.t. these contexts samples.
+            sample_contexts_for_L_dim = sample_contexts_for_L.shape[0] # This is the number of contexts samples for L.
+            with torch.enable_grad():
+                #create X_ContextsL as the concatenation of X and the contexts for all the combinations of X and the contexts.
+                X_tmpL = X.unsqueeze(1).expand(-1, sample_contexts_for_L_dim, -1).requires_grad_(True)
+                ContextsL = sample_contexts_for_L.unsqueeze(0).expand(batch_size, -1, -1)
+                X_ContextsL = torch.cat((X_tmpL, ContextsL), dim=-1)
+                posteriorL = self.model.models[0].posterior(X_ContextsL)
+                meanL = posteriorL.mean # This is 'batch x N_samples x 1'
+                varL = posteriorL.variance # This is 'batch x N_samples x 1'
+                ucbL = meanL + beta * varL.sqrt() # This is 'batch x N_samples x 1'
+                ucbL = ucbL.squeeze(-1) # This is 'batch x N_samples'
+        
+            grad = torch.autograd.grad(ucbL, X_ContextsL, torch.ones_like(ucbL), retain_graph=True)[0] # This is 'batch x N_samples x (dim+contexts_dim)'
+            grad_contexts = grad[:, :, dim:] # Takes the components of the gradient w.r.t. the contexts.
+            grad_contexts_norm = torch.norm(grad_contexts, dim=-1) # This is 'batch x N_samples', this is a L2 norm of the gradient w.r.t. the contexts.
+            L = grad_contexts_norm.max(dim=1)[0] # This is 'batch', for each x in X, this is the maximum sensitivity of the UCB w.r.t. the contexts.
+    
+        # Compute UCB with KDE samples
+        X_tmp = torch.tile(X, (1, self.N_samples))
+        X_tmp = torch.reshape(X_tmp, (batch_size, self.N_samples, dim))
+        reshaped_kde_samples = kde_samples.reshape(1, self.N_samples, contexts_dim)
+        Contexts = torch.tile(reshaped_kde_samples, (batch_size, 1, 1))
+        X_Contexts = torch.cat((X_tmp, Contexts), dim=-1)
+        X_Contexts = X_Contexts.reshape(-1, dim + contexts_dim)
+        
+        per_expert_means, per_expert_stds = [], []
+        for model in self.model.models:
+            posterior = model.posterior(X_Contexts)
+            per_expert_means.append(posterior.mean.reshape(batch_size, self.N_samples).unsqueeze(0))
+            per_expert_stds.append(torch.sqrt(posterior.variance).reshape(batch_size, self.N_samples).unsqueeze(0))
+
+        per_expert_means = torch.cat(per_expert_means, dim=0)   # [M, batch, N_samples]
+        per_expert_stds = torch.cat(per_expert_stds, dim=0)     # [M, batch, N_samples]
+
+        mu_bar = per_expert_means[0]                   # barycentre mean, pointwise per (x, c)
+        sigma_bar = per_expert_stds[0]                 # barycentre std, pointwise per (x, c)
+
+        epsilon_pointwise = torch.max(
+            torch.sqrt((per_expert_means - mu_bar) ** 2 + (per_expert_stds - sigma_bar) ** 2), dim=0
+        ).values  # [batch, N_samples]
+
+        mean = mu_bar.mean(dim=1)                  # E_c[mu_bar(x,c)]
+        std  = sigma_bar.mean(dim=1)
+        
+        expected_ucb = mean + beta * std
+
+        return expected_ucb - L * radius

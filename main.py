@@ -6,7 +6,6 @@ from edrbo.optimizers import SBOKDE_Optimizer
 from edrbo.optimizers import WassersteinUCB_Optimizer
 from edrbo.optimizers import EmpiricalUCB_Optimizer
 from edrbo.optimizers import DRBOKDE_Optimizer
-from edrbo.optimizers import WDRBO3_Optimizer
 from edrbo.optimizers import LEDRBO_Optimizer
 
 from Benchmark.Test_Function import Ackley
@@ -122,6 +121,12 @@ parser.add_argument(
     type=bool,
     default=False
 )
+parser.add_argument(
+    "--af",
+    type=str,
+    choices=["eps", "rbf", "mod", "lip", "lip_inf", "lip_plus"],
+    default="non"
+)
 # parser.add_argument(
 #     "--contexts_dim",
 #     type=int,
@@ -146,7 +151,7 @@ for i in range(args.repeat):
     
     start = time.time()
     seed = args.start_seed + i
-    base_dir = f'{args.optimizer}_{args.benchmark}_{seed}_{args.running_rounds}_{test_func.dim}_{test_func.mu}_{test_func.sigma}_{args.beta}_results'# dim_{args.contexts_dim}_
+    base_dir = f'{args.optimizer}_{args.af}_{args.benchmark}_{seed}_{args.running_rounds}_{test_func.dim}_{test_func.mu}_{test_func.sigma}_{args.beta}_results'# dim_{args.contexts_dim}_
     # check if the same experiment has been already done 
     if os.path.exists(f'./Result/{base_dir}.pkl'):
         print(f"Experiment {base_dir} has been already done.")
@@ -159,7 +164,7 @@ for i in range(args.repeat):
     random.seed(seed)
 
     # Optimization process
-    opt = eval(args.optimizer+'_Optimizer')(test_func, running_rounds=args.running_rounds, init_size=args.init_size, device=device, beta=args.beta)
+    opt = eval(args.optimizer+'_Optimizer')(test_func, running_rounds=args.running_rounds, init_size=args.init_size, device=device, beta=args.beta, af=args.af)
     X, Y, contexts, cumulative_stochastic_regret, cumulative_regret, best_Y, stochastic_Y = opt.run_opt()
     
     print(f"Time for {i}th run:{time.time() - start}")
