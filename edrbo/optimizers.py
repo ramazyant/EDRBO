@@ -95,45 +95,7 @@ class BOTorchOptimizer:
     def run_opt(self):
         pass
 
-
-class WDRBOOptimizer(BOTorchOptimizer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.contexts_for_L = sample_context_for_L_calculation(100, self.problem.bounds[:, (self.problem.dim-self.problem.contexts_dim):])
-    @abstractmethod
-    def get_list_of_models(self, train_X, train_Y):
-        pass
-    
-    def get_ensemble(self, context=True):
-        X_contexts = torch.cat((self.train_X, self.contexts), dim=-1)
-
-        ensemble = GPEnsemble(
-            *self.get_list_of_models(train_X=X_contexts, train_Y=self.train_Y.reshape(-1, 1)),
-        )
-
-        ensemble.fit_model()
-        return ensemble
-    
-    def run_opt(self):
-        for i in tqdm(range(self.init_size, self.running_rounds)):
-            ensemble = self.get_ensemble()
-            
-            acqf = EDRBO_Acquistion(ensemble=ensemble, kde_samples=self.contexts, beta=self.beta)
-            
-            candidates, _ = optimize_acqf(
-                acq_function=acqf,
-                bounds=self.bounds[:, :(self.problem.dim - self.problem.contexts_dim)],
-                q=1,
-                num_restarts=10,
-                raw_samples=1024,
-                gen_candidates=gen_candidates_torch,
-                options={"batch_limit": 512}
-            )
-            self.evaluate_new_candidates(candidates.detach(), i)
-        return self.train_X, self.train_Y, self.contexts, self.cumulative_stochastic_regret, self.cumulative_regret, self.best_Y, self.stochastic_Y
-
-
-class LEDRBO_Optimizer(WDRBOOptimizer):
+class EDRBO_Optimizer(BOTorchOptimizer):
     def __init__(self, problem, init_size=10, running_rounds=150, device=torch.device('cpu'), beta=1.5):
         super().__init__(problem, init_size, running_rounds, device=device, beta=beta)
 
@@ -171,6 +133,32 @@ class LEDRBO_Optimizer(WDRBOOptimizer):
             covar_module=MaternKernel(nu=2.5, ard_num_dims=train_X.size(-1)),#
         ).to(device=self.device)
         return [model1, model2, model3, model4]
+    
+    def get_ensemble(self, context=True):
+        X_contexts = torch.cat((self.train_X, self.contexts), dim=-1)
+        
+        ensemble = GPEnsemble(*self.get_list_of_models(train_X=X_contexts, train_Y=self.train_Y.reshape(-1, 1)))
+        ensemble.fit_model()
+        
+        return ensemble
+    
+    def run_opt(self):
+        for i in tqdm(range(self.init_size, self.running_rounds)):
+            ensemble = self.get_ensemble()
+            
+            acqf = EDRBO_Acquistion(ensemble=ensemble, kde_samples=self.contexts, beta=self.beta)
+            
+            candidates, _ = optimize_acqf(
+                acq_function=acqf,
+                bounds=self.bounds[:, :(self.problem.dim - self.problem.contexts_dim)],
+                q=1,
+                num_restarts=10,
+                raw_samples=1024,
+                gen_candidates=gen_candidates_torch,
+                options={"batch_limit": 512}
+            )
+            self.evaluate_new_candidates(candidates.detach(), i)
+        return self.train_X, self.train_Y, self.contexts, self.cumulative_stochastic_regret, self.cumulative_regret, self.best_Y, self.stochastic_Y
 
 
 class UCB_Optimizer(BOTorchOptimizer):
