@@ -19,6 +19,10 @@ from Benchmark.Test_Function import Continuous_Vendor
 from Benchmark.Test_Function import ThreeHumpCamel
 from Benchmark.Test_Function import SixHumpCamel
 
+# Real-world benchmarks (see README_real_world.md): imports the classes listed in Real_World.__all__
+import Benchmark.Real_World as Real_World
+from Benchmark.Real_World import *
+
 import argparse
 import botorch
 import numpy as np
@@ -60,7 +64,7 @@ PROBLEMS = [
     "Continuous_Vendor",
     "SixHumpCamel",
     "Ackley_dimensional"
-]
+] + Real_World.__all__  # real-world benchmarks (Benchmark/Real_World.py)
 
 parser.add_argument(
     '--optimizer',

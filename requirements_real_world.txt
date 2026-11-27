@@ -1,0 +1,10 @@
+# Requirements of the real-world benchmarks (Benchmark/Real_World.py, see README_real_world.md):
+# everything in requirements.txt plus the packages below. Tested with Python 3.11.
+-r requirements.txt
+floris==4.7           # Wake_Steering* (FLORIS wake model)
+Box2D==2.3.10         # Robot_Push* (wheels for Python 3.11 on Linux/macOS/Windows)
+PyYAML==6.0.4
+pandas==3.1.1
+# Plant_Leaf*, Glucose_Bolus*, Building_Heating*, Crop_Management* need nothing beyond numpy, scipy and pandas.
+# Only to regenerate the data files (scripts/): fmpy (BOPTEST FMU, Linux), pcse (WOFOST),
+# gpflow + tensorflow + tensorflow-probability + tf-keras (plant GP export), simglucose (port check).
