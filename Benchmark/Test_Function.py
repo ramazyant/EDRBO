@@ -560,10 +560,10 @@ class SixHumpCamel(SyntheticTestFunction):
         self.contexts_dim = 1
         self._bounds = [(0.0, 1.0) for _ in range(self.dim)] # normalized bounds
         super().__init__(noise_std=noise_std, negate=False, bounds=bounds)
-        self.max_stochastic = 3.0164  # Global minimum value
+        self.max_stochastic = -0.38913
         self.can_calculate_stochastic = True
         if negate:
-            self.max_stochastic = -3.0164
+            self.max_stochastic = 0.38913  # max_x E_c f(x, c) on the reduced domain of evaluate_true
         self.mu = mu
         self.sigma = sigma
 
@@ -587,7 +587,7 @@ class SixHumpCamel(SyntheticTestFunction):
         context_clamp = torch.clamp(context, self.bounds[0,-1], self.bounds[1,-1])
         X = torch.tile(X, (sample_size, 1))
         X = torch.cat((X, context_clamp), dim=1)
-        X = X * torch.tensor([6.0, 4.0]) - torch.tensor([3.0, 2.0]) 
+        X = X * torch.tensor([4.0, 2.0]) - torch.tensor([2.0, 1.0])  # same scaling as evaluate_true
         x1, x2 = X[..., 0], X[..., 1]
         f_X = -1*((4 - 2.1 * x1**2 + x1**4 / 3) * x1**2 + x1 * x2 + (-4 + 4 * x2**2) * x2**2)
         return f_X.mean()
