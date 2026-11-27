@@ -7,7 +7,7 @@ including the meal-dependent gastric-emptying rate (kgut), the clamps of the sta
 the eating rate of 5 g/min.  Instead of scipy's adaptive dopri5 per one-minute action interval
 it integrates a whole batch of independent scenarios at once with classical RK4 (step 0.5 min,
 inputs piecewise constant over each step), which agrees with simglucose to < 0.05 mg/dL
-(checked in real_world_tools/check_glucose_port.py).
+(checked in Benchmark/real_world_tools/check_glucose_port.py).
 
 One scenario = the patient starts in its basal steady state, eats a meal of `cho` grams starting
 at t = 0 (5 g/min), and receives a bolus of `dose` units delivered at a constant rate during the

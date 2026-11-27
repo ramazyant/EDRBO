@@ -7,11 +7,12 @@ They are selected in `main.py` with `--benchmark`, run with every optimiser in
 `edrbo/optimizers.py` (including `EDRBO`), and write the same result files,
 `Result/<optimizer>_<benchmark>_<seed>_<running_rounds>_<dim>_<mu>_<sigma>_<beta>_results.pkl`, so
 `stochastic_Y`, `cumulative_regret` etc. are produced exactly as for the synthetic problems.
+All commands below are run from the repository root.
 
 ## Install
 
 ```bash
-pip install -r requirements_real_world.txt    # requirements.txt + floris, Box2D, pyyaml, pandas
+pip install -r requirements.txt    # includes floris, Box2D, pyyaml and pandas for these benchmarks
 ```
 
 FLORIS and Box2D are imported lazily, so `Real_World` imports even if they are missing; only
@@ -70,14 +71,14 @@ and differ for the `*_Shift` problems. Distances are in the normalised context c
 | `Crop_Management_2C` | 2 | 2 | 6058.9 €/ha | – | – |
 | `Crop_Management_2C_Shift` | 2 | 2 | 5222.3 €/ha | 0.295 / 0.298 | 148.3 €/ha (2.8 %) |
 
-(`python real_world_tools/describe_benchmarks.py` recomputes this table.)
+(`python Benchmark/real_world_tools/describe_benchmarks.py` recomputes this table.)
 
 ### Wind-power commitment (`Wind_Commitment*`): real data
 - **Context c:** the realised hourly capacity factor of a wind farm.
   - The bundled data is 8,760 hours of 2010 weather at one German site: the 80 m wind speed
     from windpowerlib's example data.
   - It is converted with the Enercon E-82/2300 power curve, smoothed into a farm curve with the
-    Staffell–Pfenninger rule σ(v) = 0.6 + 0.2 v (see `scripts/make_wind_cf_windpowerlib.py`).
+    Staffell–Pfenninger rule σ(v) = 0.6 + 0.2 v (see `Benchmark/scripts/make_wind_cf_windpowerlib.py`).
 - **Decision:** the day-ahead committed energy q = x1 and the reserve bought ahead,
   R = 0.5·x2 (both as fractions of installed capacity).
 - **Profit:** per MW per hour, in units of the day-ahead price:
@@ -90,7 +91,7 @@ and differ for the `*_Shift` problems. Distances are in the normalised context c
 - **Shift:** observed in the windiest months (Nov, Dec, Mar; mean CF 0.28); evaluated in the
   calmest months (Jun, Jul; mean CF 0.19).
 - **Other data:** you can use real country-level series from Open Power System Data with
-  `scripts/download_opsd_wind.py` (see *Custom variants*).
+  `Benchmark/scripts/download_opsd_wind.py` (see *Custom variants*).
 
 ### Robust wake steering (`Wake_Steering*`): FLORIS
 - **Model:** FLORIS (NREL's engineering wake model, Gauss-curl-hybrid) with three NREL-5MW
@@ -140,7 +141,7 @@ and differ for the `*_Shift` problems. Distances are in the normalised context c
   fitted to real measurements of maximum leaf area (Temasek Life Sciences Laboratory). This is
   the "Plant" benchmark of the DRBO literature.
   - The model comes from the authors' repository and was converted to numpy
-    (`scripts/export_plant_gp.py`). The numpy version agrees with gpflow to within 1e-11.
+    (`Benchmark/scripts/export_plant_gp.py`). The numpy version agrees with gpflow to within 1e-11.
 - **Decision:** the nutrient-solution pH, 2.5 + 4x.
 - **Context:** the NH₃ concentration, 30,000·c µM (Tay et al.'s ranges).
 - **Objective:** maximum leaf area.
@@ -154,7 +155,7 @@ and differ for the `*_Shift` problems. Distances are in the normalised context c
 - **Simulator:** `Benchmark/glucose_sim.py` is a vectorised numpy port of simglucose's patient
   model (all 30 virtual patients).
   - It matches simglucose to within 0.05 mg/dL; check with
-    `python real_world_tools/check_glucose_port.py`, which needs `pip install simglucose`.
+    `python Benchmark/real_world_tools/check_glucose_port.py`, which needs `pip install simglucose`.
   - The default patient is `adult#001`.
 - **`Glucose_Bolus`:**
   - **Decision:** the bolus dose, 0–25 U, given 15 min before the meal.
@@ -192,7 +193,7 @@ and differ for the `*_Shift` problems. Distances are in the normalised context c
   - Discomfort uses BOPTEST's comfort band.
 - **Surrogate:** the means of two exact GPs (Matérn-5/2 with a linear mean), one for cost and
   one for discomfort. They were fitted to 2,500 simulations of the test-case FMU, run here with
-  FMPy (`scripts/generate_boptest_data.py`).
+  FMPy (`Benchmark/scripts/generate_boptest_data.py`).
   - On held-out *days*, the cost error is 0.34 €/day with one context and 0.22 €/day with two,
     against a data spread of 0.52. The discomfort error is 0.33 / 0.17 Kh against a spread of
     1.43.
@@ -220,7 +221,7 @@ and differ for the `*_Shift` problems. Distances are in the normalised context c
   - The N response is nearly linear above about 100 kg/ha, so with N prices below about
     1.5 €/kg the optimal N moves to the bound.
 - **Surrogate:** an exact GP (Matérn-5/2 with a linear mean) fitted to 2,500 WOFOST runs
-  (`scripts/generate_wofost_data.py`). The held-out error is 39 kg/ha (1-D) and 95 kg/ha (2-D),
+  (`Benchmark/scripts/generate_wofost_data.py`). The held-out error is 39 kg/ha (1-D) and 95 kg/ha (2-D),
   against a spread of 3,100–3,800 kg/ha.
 - **P:**
   - Rainfall multiplier: log-normal, fitted to the real year-to-year variation of
@@ -243,7 +244,7 @@ and differ for the `*_Shift` problems. Distances are in the normalised context c
   `PRECOMPUTED` in `Real_World.py`.
   - An instance with non-default arguments computes it at construction: about 15 s for 1-D
     FLORIS and robot pushing, about 2 min for 2-D FLORIS.
-  - `python real_world_tools/compute_max_stochastic.py --problem <Name> --write` stores new values.
+  - `python Benchmark/real_world_tools/compute_max_stochastic.py --problem <Name> --write` stores new values.
 - **Extra methods:** `f_xc(X, C)`, `context_distribution(which)` and `expected_value(X, which)`
   expose the objective and the discrete distributions (`which='nominal'|'eval'`) for your own
   analysis.
@@ -253,7 +254,7 @@ and differ for the `*_Shift` problems. Distances are in the normalised context c
 
 ## Robust (worst-case) evaluation
 
-`real_world_tools/robust_eval.py` reads the decisions `X` from the `Result/*_results.pkl` files
+`Benchmark/real_world_tools/robust_eval.py` reads the decisions `X` from the `Result/*_results.pkl` files
 written by `main.py`. For every iterate it computes:
 - the expected value under P_eval and the expected regret;
 - for each radius ε, the Wasserstein worst case
@@ -262,10 +263,10 @@ written by `main.py`. For every iterate it computes:
 
 The worst case is exact for distributions supported on a fine context grid. It is computed
 through the 1-D concave dual of the transport LP and checked against HiGHS
-(`python real_world_tools/robust_eval.py --test`).
+(`python Benchmark/real_world_tools/robust_eval.py --test`).
 
 ```bash
-python real_world_tools/robust_eval.py --problem Wake_Steering_Shift --optimizers UCB SBOKDE WassersteinUCB EDRBO \
+python Benchmark/real_world_tools/robust_eval.py --problem Wake_Steering_Shift --optimizers UCB SBOKDE WassersteinUCB EDRBO \
        --seeds 100 101 102 103 104 105 106 107 108 109 --rounds 200 --radii 0.02 0.05 0.1 --p 2 --stride 5
 ```
 
@@ -281,8 +282,9 @@ simple and cumulative regret.
 ## Custom variants
 
 `main.py` instantiates classes by name with only `negate`, so to use other settings define a
-subclass, e.g. at the end of `Real_World.py`, and add its name to `__all__` there (`main.py`
-imports the classes and the `--benchmark` choices from `__all__`):
+subclass, e.g. at the end of `Real_World.py`. Then add its name to `__all__` there and to the
+imports and the `PROBLEMS` list in `main.py` (and to a list in `main_multiple_runs.py` to run it
+in a suite):
 
 ```python
 class Wind_Commitment_OPSD_DE(Wind_Commitment):     # nominal 2016, regret on 2019
@@ -297,7 +299,7 @@ class Wake_Steering_Bias(Wake_Steering):            # +2 deg bias, sd 5 deg
 ```
 
 To create the OPSD files, run
-`python scripts/download_opsd_wind.py --region DE --kind onshore --years 2016 --out Benchmark/data/opsd_DE_onshore_2016.csv`
+`python Benchmark/scripts/download_opsd_wind.py --region DE --kind onshore --years 2016 --out Benchmark/data/opsd_DE_onshore_2016.csv`
 and the same with `--years 2019`. The script downloads OPSD's 60-min single-index file
 (~125 MB). `--list` shows the available wind columns; `--csv` uses a file you downloaded by
 hand.
@@ -305,27 +307,26 @@ hand.
 ## Files
 
 ```
-Benchmark/Real_World.py                     benchmark classes
-Benchmark/push_sim.py                       Box2D push simulator (port, MIT)
-Benchmark/data/wind_cf_windpowerlib_2010.csv  hourly capacity factors (derived, see script)
-Benchmark/data/floris_wind_rose.csv         site wind rose (FLORIS example data, BSD-3)
-main.py, main_multiple_runs.py              run the benchmarks (--benchmark / --suite real_world)
-requirements_real_world.txt                 requirements.txt + the packages of the real-world benchmarks
-real_world_tools/robust_eval.py             expected / worst-case evaluation of finished runs
-real_world_tools/compute_max_stochastic.py  (re)compute max_stochastic
-real_world_tools/describe_benchmarks.py     dimensions, optima, shift sizes
-real_world_tools/check_glucose_port.py      compares the glucose port with simglucose
-scripts/make_wind_cf_windpowerlib.py        rebuilds the capacity-factor file
-scripts/download_opsd_wind.py               country-level wind capacity factors from OPSD
-Benchmark/glucose_sim.py                    vectorised UVA/Padova patient model (simglucose port, MIT)
-Benchmark/data/plant_leaf_NH3pH_svgp.npz    plant leaf-area GP (Tay et al., MIT)
-Benchmark/data/simglucose_vpatient_params.csv  virtual-patient parameters (simglucose, MIT)
-Benchmark/data/boptest_hydronic_*.csv/.npz  BOPTEST simulations, daily weather contexts, fitted GPs
-Benchmark/data/wofost_potato_*.csv/.npz     WOFOST simulations and fitted GP
-Benchmark/data/wageningen_season_rain.csv   seasonal rainfall/temperature per year (P of the crop context)
-scripts/export_plant_gp.py                  gpflow pickles -> numpy
-scripts/generate_boptest_data.py            FMU simulations + GP fit (+ daily weather table)
-scripts/generate_wofost_data.py             WOFOST simulations + GP fit (+ rainfall table)
+Benchmark/Real_World.py                               benchmark classes
+Benchmark/push_sim.py                                 Box2D push simulator (port, MIT)
+Benchmark/glucose_sim.py                              vectorised UVA/Padova patient model (simglucose port, MIT)
+Benchmark/data/wind_cf_windpowerlib_2010.csv          hourly capacity factors (derived, see script)
+Benchmark/data/floris_wind_rose.csv                   site wind rose (FLORIS example data, BSD-3)
+Benchmark/data/plant_leaf_NH3pH_svgp.npz              plant leaf-area GP (Tay et al., MIT)
+Benchmark/data/simglucose_vpatient_params.csv         virtual-patient parameters (simglucose, MIT)
+Benchmark/data/boptest_hydronic_*.csv/.npz            BOPTEST simulations, daily weather contexts, fitted GPs
+Benchmark/data/wofost_potato_*.csv/.npz               WOFOST simulations and fitted GP
+Benchmark/data/wageningen_season_rain.csv             seasonal rainfall/temperature per year (P of the crop context)
+Benchmark/real_world_tools/robust_eval.py             expected / worst-case evaluation of finished runs
+Benchmark/real_world_tools/compute_max_stochastic.py  (re)compute max_stochastic
+Benchmark/real_world_tools/describe_benchmarks.py     dimensions, optima, shift sizes
+Benchmark/real_world_tools/check_glucose_port.py      compares the glucose port with simglucose
+Benchmark/scripts/make_wind_cf_windpowerlib.py        rebuilds the capacity-factor file
+Benchmark/scripts/download_opsd_wind.py               country-level wind capacity factors from OPSD
+Benchmark/scripts/export_plant_gp.py                  gpflow pickles -> numpy
+Benchmark/scripts/generate_boptest_data.py            FMU simulations + GP fit (+ daily weather table)
+Benchmark/scripts/generate_wofost_data.py             WOFOST simulations + GP fit (+ rainfall table)
+main.py, main_multiple_runs.py                        run the benchmarks (--benchmark / --suite real_world)
 ```
 
 ## Regenerating the data
@@ -334,17 +335,17 @@ The shipped files were produced as follows (about 15 min each for BOPTEST and WO
 
 ```bash
 # plant GP (needs gpflow, tensorflow, tensorflow-probability, tf-keras)
-python scripts/export_plant_gp.py --edrbo efficient-distributionally-robust-BO --bocu unified-framework-BOCU
+python Benchmark/scripts/export_plant_gp.py --edrbo efficient-distributionally-robust-BO --bocu unified-framework-BOCU
 # BOPTEST (Linux; pip install fmpy; libgfortran.so.4, e.g. from Ubuntu's libgfortran4 package)
-python scripts/generate_boptest_data.py --weather project1-boptest/testcases/bestest_hydronic/models/Resources/weather.csv --out Benchmark/data/boptest_hydronic_days.csv
-python scripts/generate_boptest_data.py --fmu project1-boptest/testcases/bestest_hydronic/models/wrapped.fmu --n 2500 --out Benchmark/data/boptest_hydronic_sims.csv
-python scripts/generate_boptest_data.py --fit Benchmark/data/boptest_hydronic_sims.csv
+python Benchmark/scripts/generate_boptest_data.py --weather project1-boptest/testcases/bestest_hydronic/models/Resources/weather.csv --out Benchmark/data/boptest_hydronic_days.csv
+python Benchmark/scripts/generate_boptest_data.py --fmu project1-boptest/testcases/bestest_hydronic/models/wrapped.fmu --n 2500 --out Benchmark/data/boptest_hydronic_sims.csv
+python Benchmark/scripts/generate_boptest_data.py --fit Benchmark/data/boptest_hydronic_sims.csv
 # WOFOST (pip install pcse; clone ajwdewit/pcse_notebooks and the wofost81 branch of ajwdewit/WOFOST_crop_parameters)
-python scripts/generate_wofost_data.py --notebooks pcse_notebooks --rain_table Benchmark/data/wageningen_season_rain.csv
-python scripts/generate_wofost_data.py --notebooks pcse_notebooks --crop WOFOST_crop_parameters --n 2500 --out Benchmark/data/wofost_potato_sims.csv
-python scripts/generate_wofost_data.py --fit Benchmark/data/wofost_potato_sims.csv
+python Benchmark/scripts/generate_wofost_data.py --notebooks pcse_notebooks --rain_table Benchmark/data/wageningen_season_rain.csv
+python Benchmark/scripts/generate_wofost_data.py --notebooks pcse_notebooks --crop WOFOST_crop_parameters --n 2500 --out Benchmark/data/wofost_potato_sims.csv
+python Benchmark/scripts/generate_wofost_data.py --fit Benchmark/data/wofost_potato_sims.csv
 # then refresh the stored optima
-python real_world_tools/compute_max_stochastic.py --write
+python Benchmark/real_world_tools/compute_max_stochastic.py --write
 ```
 
 ## Sources

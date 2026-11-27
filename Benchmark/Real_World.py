@@ -2,7 +2,7 @@
 
 Every class follows the interface of the synthetic test problems in Benchmark/Test_Function.py
 (the same interface as in WDRBO / SBOKDE), so it runs with main.py and every optimiser in
-edrbo/optimizers.py, and produces the same result files (see README_real_world.md):
+edrbo/optimizers.py, and produces the same result files (see Benchmark/README_real_world.md):
 
   * botorch ``SyntheticTestFunction`` on the unit cube [0, 1]^dim; the LAST ``contexts_dim``
     coordinates are the context, the first ``dim - contexts_dim`` the decision;
@@ -19,7 +19,7 @@ For the ``*_Shift`` classes the optimiser observes contexts from P_nominal while
 measured under P_eval != P_nominal (``max_stochastic`` is the optimum under P_eval). For the
 other classes P_nominal = P_eval (the usual data-driven setting).
 
-Extra methods used by ``real_world_tools/robust_eval.py`` and ``real_world_tools/compute_max_stochastic.py``:
+Extra methods used by ``Benchmark/real_world_tools/robust_eval.py`` and ``Benchmark/real_world_tools/compute_max_stochastic.py``:
   * ``f_xc(X, C)``      -> numpy (n_x, n_c): natural objective on all pairs (x_i, c_j);
   * ``context_distribution(which)`` -> (C, w): discrete representation of P_nominal / P_eval
     (atoms + weights) used for expectations and for the Wasserstein worst case;
@@ -45,7 +45,7 @@ __all__ = ['Wind_Commitment', 'Wind_Commitment_Shift',
 
 # ---------------------------------------------------------------------------------------------
 # max_x E_{P_eval} f(x, c) and min_x E_{P_eval} f(x, c) for the default configurations
-# (natural units). Recompute with  python real_world_tools/compute_max_stochastic.py --problem <Name>
+# (natural units). Recompute with  python Benchmark/real_world_tools/compute_max_stochastic.py --problem <Name>
 # if you change any constructor argument; non-default instances compute them at construction.
 # ---------------------------------------------------------------------------------------------
 PRECOMPUTED = {
@@ -184,9 +184,9 @@ class Wind_Commitment(_RealWorldProblem):
 
     Context  c in [0, 1]: realised hourly capacity factor (real data, default: 2010 hourly
              80-m wind speed of a German site shipped with windpowerlib, converted with the
-             smoothed Enercon E-82/2300 farm power curve, see scripts/make_wind_cf_windpowerlib.py;
+             smoothed Enercon E-82/2300 farm power curve, see Benchmark/scripts/make_wind_cf_windpowerlib.py;
              or any CSV with columns `cf`, `month`, e.g. OPSD country profiles from
-             scripts/download_opsd_wind.py).
+             Benchmark/scripts/download_opsd_wind.py).
     Decision x = (x1, x2) in [0, 1]^2: committed energy q = x1 (fraction of capacity) and
              reserve capacity R = max_reserve * x2 bought ahead of time.
     Profit (per MW installed and hour, in units of the day-ahead price):
@@ -723,7 +723,7 @@ def _fmt_mix(components):
 
 class _MaternGP:
     """Posterior mean of an exact GP (ScaleKernel(Matern-5/2, ARD), linear mean function) fitted offline;
-    see scripts/generate_*_data.py --fit. Inputs in [0, 1]^d."""
+    see Benchmark/scripts/generate_*_data.py --fit. Inputs in [0, 1]^d."""
 
     def __init__(self, npz, prefix):
         g = lambda k: npz[f'{prefix}_{k}']
@@ -1024,7 +1024,7 @@ class Building_Heating(_EmpiricalDaysMixin, _RealWorldProblem):
     prices (gas 0.0498, electricity 0.2535 EUR/kWh), discomfort in Kh w.r.t. the BOPTEST comfort band
     (21-24 degC occupied, 15-30 degC otherwise), w = 2 EUR/Kh by default.
     Surrogate: posterior means of exact GPs (Matern-5/2 ARD) fitted to 2500 FMU simulations
-    (Sobol design over x and the real days; scripts/generate_boptest_data.py), one for the cost and
+    (Sobol design over x and the real days; Benchmark/scripts/generate_boptest_data.py), one for the cost and
     one for the discomfort (both clipped at 0).
     Context distribution: empirical distribution of the 142 real days Nov-Mar of the test-case weather
     year (default) -- the shift variants use March (mild) as nominal and January-February (cold) as eval:
@@ -1110,7 +1110,7 @@ class Crop_Management(_RealWorldProblem):
         the N response is concave up to ~ 100 kg/ha and nearly linear beyond, so a lower N price
         (< 1.5 EUR/kg) moves the optimal N to the bound.
     Surrogate: posterior mean of an exact GP (Matern-5/2 ARD) fitted to 2500 WOFOST runs (Sobol design;
-    scripts/generate_wofost_data.py), in-sample RMSE reported by the script.
+    Benchmark/scripts/generate_wofost_data.py), in-sample RMSE reported by the script.
     Context distribution: rho ~ log-normal fitted to the real inter-annual variability of the
     planting-to-harvest rainfall at Wageningen (2004-2008, 2013-2015, relative to 2006:
     log-mean -0.024, log-sd 0.164) and dT ~ N(0, 0.59^2) (sd of the seasonal mean temperature over

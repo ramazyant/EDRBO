@@ -11,13 +11,13 @@ script divides <REGION>_wind..._generation_actual by <REGION>_wind..._capacity.
 
 Examples
     # German onshore wind, 2016 (nominal) and 2019 (evaluation)
-    python scripts/download_opsd_wind.py --region DE --kind onshore --years 2016 --out Benchmark/data/opsd_DE_on_2016.csv
-    python scripts/download_opsd_wind.py --region DE --kind onshore --years 2019 --out Benchmark/data/opsd_DE_on_2019.csv
+    python Benchmark/scripts/download_opsd_wind.py --region DE --kind onshore --years 2016 --out Benchmark/data/opsd_DE_on_2016.csv
+    python Benchmark/scripts/download_opsd_wind.py --region DE --kind onshore --years 2019 --out Benchmark/data/opsd_DE_on_2019.csv
     # then in Python / main.py:
     #   Wind_Commitment(data_file='Benchmark/data/opsd_DE_on_2016.csv',
     #                   eval_data_file='Benchmark/data/opsd_DE_on_2019.csv', negate=True)
     # list the available wind columns:
-    python scripts/download_opsd_wind.py --list
+    python Benchmark/scripts/download_opsd_wind.py --list
 
 If the download is blocked, fetch the CSV in a browser and pass it with --csv.
 """
@@ -73,7 +73,7 @@ def main():
         out = out[out.year.isin(a.years)]
     if out.empty:
         sys.exit('no data left after filtering (check --region/--kind/--years)')
-    dest = a.out or os.path.join(os.path.dirname(__file__), '..', 'Benchmark', 'data',
+    dest = a.out or os.path.join(os.path.dirname(__file__), '..', 'data',
                                  f'opsd_{a.region}_{a.kind}_{"-".join(map(str, a.years or ["all"]))}.csv')
     out.to_csv(dest, index=False, float_format='%.5f')
     print(f'wrote {dest}: {len(out)} hours, years {sorted(out.year.unique())}, mean CF {out.cf.mean():.3f}')

@@ -15,10 +15,10 @@ daily rain amounts scaled) and, for the 2-context version, a temperature offset 
 (TMIN/TMAX shifted; E0/ES0/ET0 recomputed with PCSE's Penman routine).
 Output: tuber dry matter TWSO (kg/ha) at harvest; profit is computed in the benchmark class.
 
-    python scripts/generate_wofost_data.py --notebooks /path/pcse_notebooks --crop /path/WOFOST_crop_parameters_wofost81 \
+    python Benchmark/scripts/generate_wofost_data.py --notebooks /path/pcse_notebooks --crop /path/WOFOST_crop_parameters_wofost81 \
         --n 2500 --out wofost_potato_sims.csv
-    python scripts/generate_wofost_data.py --fit wofost_potato_sims.csv
-    python scripts/generate_wofost_data.py --notebooks ... --rain_table Benchmark/data/wageningen_season_rain.csv
+    python Benchmark/scripts/generate_wofost_data.py --fit wofost_potato_sims.csv
+    python Benchmark/scripts/generate_wofost_data.py --notebooks ... --rain_table Benchmark/data/wageningen_season_rain.csv
 """
 import argparse
 import datetime as dt

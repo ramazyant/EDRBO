@@ -1,12 +1,12 @@
 """Compare the vectorised patient model (Benchmark/glucose_sim.py) with simglucose itself.
 
-    pip install simglucose ; python real_world_tools/check_glucose_port.py
+    pip install simglucose ; python Benchmark/real_world_tools/check_glucose_port.py
 """
 import os
 import sys
 import time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repository root
 sys.path.insert(0, ROOT)
 import numpy as np  # noqa: E402
 from Benchmark.glucose_sim import load_patient, simulate, simulate_schedule  # noqa: E402

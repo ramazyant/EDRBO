@@ -19,9 +19,31 @@ from Benchmark.Test_Function import Continuous_Vendor
 from Benchmark.Test_Function import ThreeHumpCamel
 from Benchmark.Test_Function import SixHumpCamel
 
-# Real-world benchmarks (see README_real_world.md): imports the classes listed in Real_World.__all__
-import Benchmark.Real_World as Real_World
-from Benchmark.Real_World import *
+# Real-world benchmarks (see Benchmark/README_real_world.md)
+from Benchmark.Real_World import Wind_Commitment
+from Benchmark.Real_World import Wind_Commitment_Shift
+from Benchmark.Real_World import Wake_Steering
+from Benchmark.Real_World import Wake_Steering_Shift
+from Benchmark.Real_World import Wake_Steering_2C
+from Benchmark.Real_World import Wake_Steering_2C_Shift
+from Benchmark.Real_World import Robot_Push
+from Benchmark.Real_World import Robot_Push_Shift
+from Benchmark.Real_World import Robot_Push_Success
+from Benchmark.Real_World import Robot_Push_Success_Shift
+from Benchmark.Real_World import Plant_Leaf
+from Benchmark.Real_World import Plant_Leaf_Shift
+from Benchmark.Real_World import Glucose_Bolus
+from Benchmark.Real_World import Glucose_Bolus_Shift
+from Benchmark.Real_World import Glucose_Bolus_2Meals
+from Benchmark.Real_World import Glucose_Bolus_2Meals_Shift
+from Benchmark.Real_World import Building_Heating
+from Benchmark.Real_World import Building_Heating_Shift
+from Benchmark.Real_World import Building_Heating_2C
+from Benchmark.Real_World import Building_Heating_2C_Shift
+from Benchmark.Real_World import Crop_Management
+from Benchmark.Real_World import Crop_Management_Shift
+from Benchmark.Real_World import Crop_Management_2C
+from Benchmark.Real_World import Crop_Management_2C_Shift
 
 import argparse
 import botorch
@@ -63,8 +85,33 @@ PROBLEMS = [
     "portfolio_normal_optimization",
     "Continuous_Vendor",
     "SixHumpCamel",
-    "Ackley_dimensional"
-] + Real_World.__all__  # real-world benchmarks (Benchmark/Real_World.py)
+    "Ackley_dimensional",
+    # real-world benchmarks (Benchmark/Real_World.py)
+    "Wind_Commitment",
+    "Wind_Commitment_Shift",
+    "Wake_Steering",
+    "Wake_Steering_Shift",
+    "Wake_Steering_2C",
+    "Wake_Steering_2C_Shift",
+    "Robot_Push",
+    "Robot_Push_Shift",
+    "Robot_Push_Success",
+    "Robot_Push_Success_Shift",
+    "Plant_Leaf",
+    "Plant_Leaf_Shift",
+    "Glucose_Bolus",
+    "Glucose_Bolus_Shift",
+    "Glucose_Bolus_2Meals",
+    "Glucose_Bolus_2Meals_Shift",
+    "Building_Heating",
+    "Building_Heating_Shift",
+    "Building_Heating_2C",
+    "Building_Heating_2C_Shift",
+    "Crop_Management",
+    "Crop_Management_Shift",
+    "Crop_Management_2C",
+    "Crop_Management_2C_Shift"
+]
 
 parser.add_argument(
     '--optimizer',

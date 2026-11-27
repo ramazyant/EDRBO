@@ -1,4 +1,4 @@
 __pycache__/
 *.pyc
-# download cache of scripts/download_opsd_wind.py (~125 MB)
-scripts/opsd_time_series_60min.csv
+# download cache of Benchmark/scripts/download_opsd_wind.py (~125 MB)
+Benchmark/scripts/opsd_time_series_60min.csv

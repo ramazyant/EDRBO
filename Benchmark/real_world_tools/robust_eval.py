@@ -13,7 +13,7 @@ box (plus the atoms of P_ctr), through the dual of the transport LP
 a concave 1-D problem (bounded Brent search over lam in [0, (max f - min f) / eps^p]).
 
 Usage (from the repository root, after main.py runs):
-    python real_world_tools/robust_eval.py --problem Wake_Steering_Shift \
+    python Benchmark/real_world_tools/robust_eval.py --problem Wake_Steering_Shift \
         --optimizers UCB SBOKDE WassersteinUCB EDRBO --seeds 100 101 102 \
         --rounds 200 --beta 1.5 --radii 0.02 0.05 0.1 --p 2 --stride 5
 Writes Result/robust_<problem>_<center>_p<p>.csv (one row per optimiser, seed, iteration) and
@@ -28,7 +28,7 @@ import pickle as pkl
 import sys
 import time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repository root
 sys.path.insert(0, ROOT)
 
 import numpy as np  # noqa: E402

@@ -17,9 +17,9 @@ applied for `warmup` days before d as well (periodic regime). Outputs for day d:
     Tout  = daily mean outdoor dry-bulb temperature (degC), Hglo = daily global horizontal
             irradiation (kWh/m2), the contexts.
 
-    python scripts/generate_boptest_data.py --fmu /path/to/project1-boptest/testcases/bestest_hydronic/models/wrapped.fmu \
+    python Benchmark/scripts/generate_boptest_data.py --fmu /path/to/project1-boptest/testcases/bestest_hydronic/models/wrapped.fmu \
         --n 2000 --out Benchmark/data/boptest_hydronic_sims.csv
-    python scripts/generate_boptest_data.py --fit Benchmark/data/boptest_hydronic_sims.csv
+    python Benchmark/scripts/generate_boptest_data.py --fit Benchmark/data/boptest_hydronic_sims.csv
 """
 import argparse
 import os

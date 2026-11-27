@@ -10,7 +10,7 @@ implements in power_curves.smooth_power_curve), the standard way to turn a turbi
 an aggregate capacity factor. The output column `cf` is in [0, 1].
 
 Usage:
-    python scripts/make_wind_cf_windpowerlib.py --windpowerlib /path/to/windpowerlib
+    python Benchmark/scripts/make_wind_cf_windpowerlib.py --windpowerlib /path/to/windpowerlib
 """
 import argparse
 import os
@@ -35,7 +35,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--windpowerlib', required=True, help='path to a clone of wind-python/windpowerlib')
     ap.add_argument('--turbine', default='E-82/2300')
-    ap.add_argument('--out', default=os.path.join(os.path.dirname(__file__), '..', 'Benchmark', 'data',
+    ap.add_argument('--out', default=os.path.join(os.path.dirname(__file__), '..', 'data',
                                                   'wind_cf_windpowerlib_2010.csv'))
     a = ap.parse_args()
 

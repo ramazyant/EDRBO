@@ -5,17 +5,17 @@ For every problem it prints d_x, d_c, max_x E_eval f, and for the *_Shift proble
   shift regret : E_eval-regret of the decision that is optimal under P_nominal
                  (what a learner that models P_nominal perfectly would lose).
 
-    python real_world_tools/describe_benchmarks.py [--problem Wake_Steering_Shift ...]
+    python Benchmark/real_world_tools/describe_benchmarks.py [--problem Wake_Steering_Shift ...]
 """
 import argparse
 import os
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repository root
 sys.path.insert(0, ROOT)
 
 import numpy as np  # noqa: E402
-from real_world_tools.robust_eval import compress  # noqa: E402
+from Benchmark.real_world_tools.robust_eval import compress  # noqa: E402
 
 ALL = ['Wind_Commitment', 'Wind_Commitment_Shift', 'Wake_Steering', 'Wake_Steering_Shift',
        'Wake_Steering_2C', 'Wake_Steering_2C_Shift', 'Robot_Push', 'Robot_Push_Shift',

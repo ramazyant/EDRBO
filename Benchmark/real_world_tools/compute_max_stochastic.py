@@ -1,9 +1,9 @@
 """Compute max_x E_{P_eval} f(x, c) (and the min, needed with --minimization) for the
 real-world benchmarks, i.e. the `max_stochastic` used for the stochastic regret.
 
-    python real_world_tools/compute_max_stochastic.py                       # all problems, print only
-    python real_world_tools/compute_max_stochastic.py --problem Wake_Steering --write
-    python real_world_tools/compute_max_stochastic.py --n_sobol 2048 --n_local 8 --write
+    python Benchmark/real_world_tools/compute_max_stochastic.py                       # all problems, print only
+    python Benchmark/real_world_tools/compute_max_stochastic.py --problem Wake_Steering --write
+    python Benchmark/real_world_tools/compute_max_stochastic.py --n_sobol 2048 --n_local 8 --write
 
 --write stores the values in the PRECOMPUTED table of Benchmark/Real_World.py, so that default
 instances do not recompute them at construction. Wind_Commitment* are always solved exactly at
@@ -15,7 +15,7 @@ import re
 import sys
 import time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repository root
 sys.path.insert(0, ROOT)
 
 import numpy as np  # noqa: E402

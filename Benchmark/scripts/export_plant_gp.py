@@ -10,7 +10,7 @@ latent of the heteroscedastic model is needed: mean(x) = K(x, Z) L^{-T} q_mu (wh
 stored as alpha = L^{-T} q_mu. The script checks the numpy prediction against gpflow's predict_y.
 
     pip install gpflow tensorflow tensorflow-probability tf-keras
-    python scripts/export_plant_gp.py --edrbo /path/efficient-distributionally-robust-BO --bocu /path/unified-framework-BOCU
+    python Benchmark/scripts/export_plant_gp.py --edrbo /path/efficient-distributionally-robust-BO --bocu /path/unified-framework-BOCU
 """
 import argparse
 import importlib.util
@@ -19,7 +19,7 @@ import pickle
 
 import numpy as np
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Benchmark', 'data')
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data')
 
 
 class _Unpickler(pickle.Unpickler):

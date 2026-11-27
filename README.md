@@ -22,14 +22,13 @@ Ackley, ThreeHumpCamel, Hartmann, Hartmann_complicated, Modified_Branin, Continu
 
 >Real-world benchmarks
 
-`Benchmark/Real_World.py` adds 24 real-world benchmarks with continuous contexts: wind-power commitment, wind-farm wake steering (FLORIS), robot pushing (Box2D), plant growth, insulin dosing (UVA/Padova model), building heating (BOPTEST) and crop management (WOFOST). Each comes in a data-driven version and a distribution-shift version (`_Shift`: contexts observed from one distribution, regret measured under another). They have the same interface as the synthetic benchmarks and run in the same pipeline, after installing their extra requirements:
+`Benchmark/Real_World.py` adds 24 real-world benchmarks with continuous contexts: wind-power commitment, wind-farm wake steering (FLORIS), robot pushing (Box2D), plant growth, insulin dosing (UVA/Padova model), building heating (BOPTEST) and crop management (WOFOST). Each comes in a data-driven version and a distribution-shift version (`_Shift`: contexts observed from one distribution, regret measured under another). They have the same interface as the synthetic benchmarks and run in the same way (the packages they need are in ```requirements.txt```):
 ```
-pip install -r requirements_real_world.txt
-python main_multiple_runs.py --suite real_world
 python main.py --optimizer EDRBO --benchmark Wake_Steering_Shift
+python main_multiple_runs.py --suite real_world
 ```
-BENCH can then also be one of
+BENCH can also be one of
 ```
 Wind_Commitment, Wind_Commitment_Shift, Wake_Steering, Wake_Steering_Shift, Wake_Steering_2C, Wake_Steering_2C_Shift, Robot_Push, Robot_Push_Shift, Robot_Push_Success, Robot_Push_Success_Shift, Plant_Leaf, Plant_Leaf_Shift, Glucose_Bolus, Glucose_Bolus_Shift, Glucose_Bolus_2Meals, Glucose_Bolus_2Meals_Shift, Building_Heating, Building_Heating_Shift, Building_Heating_2C, Building_Heating_2C_Shift, Crop_Management, Crop_Management_Shift, Crop_Management_2C, Crop_Management_2C_Shift
 ```
-See [README_real_world.md](README_real_world.md) for the problems, their data sources, the benchmark suites of `main_multiple_runs.py` and the worst-case evaluation of finished runs.
+See [Benchmark/README_real_world.md](Benchmark/README_real_world.md) for the problems, their data sources, the benchmark suites of `main_multiple_runs.py` and the worst-case evaluation of finished runs.

@@ -9,7 +9,7 @@ optimizers = ['EDRBO', 'EmpiricalUCB', 'UCB', 'WassersteinUCB', 'SBOKDE', 'DRBOK
 # Synthetic benchmarks (Benchmark/Test_Function.py)
 synthetic_problems = ['Ackley', 'ThreeHumpCamel', 'Hartmann', 'Hartmann_complicated', 'Modified_Branin', 'Continuous_Vendor', 'SixHumpCamel', 'portfolio_optimization', 'portfolio_normal_optimization']
 
-# Real-world benchmarks (Benchmark/Real_World.py, see README_real_world.md)
+# Real-world benchmarks (Benchmark/Real_World.py, see Benchmark/README_real_world.md)
 real_world_problems = [
     # data-driven setting (contexts and regret under the same distribution)
     'Wind_Commitment', 'Wake_Steering', 'Wake_Steering_2C', 'Robot_Push',
